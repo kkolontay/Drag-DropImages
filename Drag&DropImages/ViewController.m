@@ -85,6 +85,10 @@ const CGFloat distanceBetweenCell = 5.0f;
 - (BOOL)collectionView:(UICollectionView *)collectionView shouldHighlightItemAtIndexPath:(NSIndexPath *)indexPath {
   choosenCell = (SourceCollectionViewCell *)[collectionView cellForItemAtIndexPath:indexPath];
   if (choosenCell != nil) {
+    if (_dragView != nil) {
+      [_dragView removeFromSuperview];
+      _dragView = nil;
+    }
     _dragView = [[DragDropInstance alloc] initWithFrame:choosenCell.frame];
     [_dragView setImage:[_data objectAtIndex:choosenCell.indexImage]];
     [self.view addSubview:_dragView];

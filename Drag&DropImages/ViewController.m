@@ -15,7 +15,7 @@
 
 const CGFloat distanceBetweenCell = 5.0f;
 
-@interface ViewController () <UICollectionViewDataSource, UICollectionViewDelegate, UIGestureRecognizerDelegate, CollectionViewDidChangeSize>
+@interface ViewController () <UICollectionViewDataSource, UIGestureRecognizerDelegate, CollectionViewDidChangeSize>
 
 @property (weak, nonatomic) IBOutlet ViewCollectivon *collection;
 @property (weak, nonatomic) IBOutlet UIScrollView *scrollView;
@@ -27,74 +27,69 @@ const CGFloat distanceBetweenCell = 5.0f;
 
 @implementation ViewController {
   SourceCollectionViewCell *choosenCell;
+  UILongPressGestureRecognizer *longPressGesture;
+  int indexSelected;
 }
 
 - (void)viewDidLoad {
   [super viewDidLoad];
-   _data = [[NSMutableArray alloc] initWithArray:[[Images sharedInstance] getData]];
+  longPressGesture = [[UILongPressGestureRecognizer alloc] initWithTarget:self action:@selector(handleLongPress:)];
+  longPressGesture.delegate = self;
+  [_sourceCollectionView addGestureRecognizer:longPressGesture];
+  longPressGesture.minimumPressDuration = 0.2;
+  _data = [[NSMutableArray alloc] initWithArray:[[Images sharedInstance] getData]];
   _collection.delegate = self;
-    [_sourceCollectionView reloadData];
+  [_sourceCollectionView reloadData];
+}
+
+- (void)handleLongPress: (UILongPressGestureRecognizer *) recognizer {
+  CGPoint point = [recognizer locationInView: _sourceCollectionView];
+  
+  switch (recognizer.state) {
+    case UIGestureRecognizerStateBegan:
+      indexSelected = (int) [_sourceCollectionView indexPathForItemAtPoint:point].row;
+      choosenCell = (SourceCollectionViewCell *)[_sourceCollectionView cellForItemAtIndexPath:[_sourceCollectionView indexPathForItemAtPoint:point]];
+      _dragView = [[DragDropInstance alloc] initWithFrame:choosenCell.frame];
+      [_dragView setImage:[_data objectAtIndex:indexSelected]];
+      [self.view addSubview:_dragView];
+      [self.view bringSubviewToFront:_dragView];
+      [self setFrameDragItem:point];
+      NSLog(@"began");
+      break;
+    case UIGestureRecognizerStateChanged:
+      [self setFrameDragItem:point];
+        BOOL isInside = CGRectContainsPoint(_scrollView.frame, point);
+        if (isInside == YES) {
+          _collection.layer.borderColor = [UIColor yellowColor].CGColor;
+        _collection.layer.borderWidth = 3;
+        } else {
+          _collection.layer.borderColor = [UIColor clearColor].CGColor;
+        }
+      NSLog(@"changed");
+      break;
+    case UIGestureRecognizerStateEnded:
+      [_dragView removeFromSuperview];
+        BOOL isInsideView = CGRectContainsPoint(_scrollView.frame, point);
+        if (isInsideView == YES) {
+          [_collection addImage:[_data objectAtIndex: choosenCell.indexImage]];
+       }
+       _collection.layer.borderColor = [UIColor clearColor].CGColor;
+        _dragView = nil;
+        choosenCell = nil;
+      NSLog(@"end");
+      break;
+    default:
+      break;
+  }
 }
 
 - (void)didRotateFromInterfaceOrientation:(UIInterfaceOrientation)fromInterfaceOrientation {
-   [_collection setNeedsDisplay];
-}
-
-- (void)touchesBegan:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event {
-  [super touchesBegan:touches withEvent:event];
-  CGPoint point = [self getPoint:event];
-  if (choosenCell != nil) {
-  [self setFrameDragItem:point];
-  }
-}
-
-- (void)touchesMoved:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event {
-  CGPoint point = [self getPoint:event];
-  [self setFrameDragItem:point];
-  BOOL isInside = CGRectContainsPoint(_scrollView.frame, point);
-  if (isInside == YES) {
-    _collection.layer.borderColor = [UIColor yellowColor].CGColor;
-    _collection.layer.borderWidth = 3;
-  } else {
-    _collection.layer.borderColor = [UIColor clearColor].CGColor;
-  }
- }
-
-- (void)touchesEnded:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event {
-  CGPoint point = [self getPoint:event];
-  [_dragView removeFromSuperview];
-  BOOL isInside = CGRectContainsPoint(_scrollView.frame, point);
-  if (isInside == YES) {
-    [_collection addImage:[_data objectAtIndex: choosenCell.indexImage]];
-  }
-  _collection.layer.borderColor = [UIColor clearColor].CGColor;
-  _dragView = nil;
-  choosenCell = nil;
-}
-
-- (CGPoint)getPoint: (UIEvent *) event {
-  UITouch *touch = [[event allTouches] allObjects].firstObject;
-  return  [touch locationInView:self.view];
+  [_collection setNeedsDisplay];
 }
 
 - (void)setFrameDragItem:(CGPoint) point {
   CGFloat deltaX = _dragView.frame.size.height / 2;
   [_dragView setFrame:CGRectMake(point.x -  deltaX, point.y - deltaX, deltaX * 2, deltaX * 2)];
-}
-
-- (BOOL)collectionView:(UICollectionView *)collectionView shouldHighlightItemAtIndexPath:(NSIndexPath *)indexPath {
-  choosenCell = (SourceCollectionViewCell *)[collectionView cellForItemAtIndexPath:indexPath];
-  if (choosenCell != nil) {
-    if (_dragView != nil) {
-      [_dragView removeFromSuperview];
-      _dragView = nil;
-    }
-    _dragView = [[DragDropInstance alloc] initWithFrame:choosenCell.frame];
-    [_dragView setImage:[_data objectAtIndex:choosenCell.indexImage]];
-    [self.view addSubview:_dragView];
-    [self.view bringSubviewToFront:_dragView];
-  }
-  return YES;
 }
 
 - (void)sizeCnaged:(CGSize)size {

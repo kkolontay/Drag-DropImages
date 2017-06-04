@@ -24,16 +24,6 @@
   _imageView.image = nil;
 }
 
-- (void)setHighlighted:(BOOL)highlighted {
-  if (highlighted) {
-    self.layer.borderColor = [UIColor redColor].CGColor;
-    self.layer.borderWidth = 4.0f;
-  } else {
-    self.layer.borderColor = [UIColor clearColor].CGColor;
-    self.layer.borderWidth  = 1.0f;
-  }
-}
-
 - (UIImage *)getImage {
   return self.imageView.image;
 }
